@@ -1,6 +1,8 @@
 name: Build Test Publish
 
 on:
+  pull_request:
+    branches: [ master ]
   push:
     branches:
     - "*"  # run for branches
@@ -14,7 +16,7 @@ jobs:
     steps:
     - name: 'Checkout'
       uses: actions/checkout@v1
-    
+
     - name: 'Build artifacts'
       run: make dist
 
