@@ -102,7 +102,7 @@ FROM builder as kind-builder
 
 ARG DOCKER_CLI_VERSION=20.10.3
 
-RUN mkdir -p /opt/bin   
+RUN mkdir -p /opt/bin
 
 # kind requires docker client
 RUN echo "DOCKER_CLI_VERSION: ${DOCKER_CLI_VERSION}" \
@@ -146,6 +146,9 @@ FROM final-base as dist-helper
 
 ARG GIT_SHA=master
 ARG GIT_REF=refs/heads/master
+ARG DEV_IMAGE_NAME=kubestack/framework-dev
+ARG IMAGE_NAME=kubestack/framework
+ARG GITHUB_REPOSITORY=kbst/terraform-kubestack
 
 COPY quickstart /quickstart
 WORKDIR /quickstart
@@ -156,7 +159,10 @@ RUN cd build_artifacts &&\
     pipenv install
 
 ENV GIT_SHA=${GIT_SHA} \
-    GIT_REF=${GIT_REF}
+    GIT_REF=${GIT_REF} \
+    GITHUB_REPOSITORY=${GITHUB_REPOSITORY} \
+    DEV_IMAGE_NAME=${DEV_IMAGE_NAME} \
+    IMAGE_NAME=${IMAGE_NAME}
 RUN cd build_artifacts &&\
     pipenv run python dist.py dist
 

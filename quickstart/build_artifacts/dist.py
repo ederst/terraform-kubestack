@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from os import environ, listdir, mkdir
+from os import environ, listdir, mkdir, getenv
 from os.path import isdir, exists, join
 from shutil import copytree, make_archive, rmtree
 from sys import argv, exit
@@ -24,7 +24,7 @@ def replace_template(dist_path, file_name, context):
         f.write('\n')
 
 
-def dist(version, image_name, configuration):
+def dist(version, image_name, configuration, git_url):
     configuration_src = f'{SRCDIR}/configurations/{configuration}'
     configuration_dist = f'{DISTDIR}/{ARTIFACT_PREFIX}{configuration}'
     manifests_src = f'{SRCDIR}/manifests'
@@ -40,7 +40,7 @@ def dist(version, image_name, configuration):
 
     # Replace templated version variable in clusters.tf
     replace_template(configuration_dist, 'clusters.tf',
-                     {'version': version})
+                     {'version': version, 'git_url': git_url})
 
     # Replace templated variables in Dockerfiles
     dockerfiles = ['Dockerfile', 'Dockerfile.loc']
@@ -66,13 +66,17 @@ if __name__ == "__main__":
     # Use tag as version, fallback to commit sha
     version = environ.get('GIT_SHA')
     # Non tagged images go to a different image repository
-    image_name = 'kubestack/framework-dev'
+    image_name = getenv('DEV_IMAGE_NAME', 'kubestack/framework-dev')
+
+    # git_server_url = getenv('GITHUB_SERVER_URL', 'https://github.com')
+    git_repo = getenv('GITHUB_REPOSITORY', 'kbst/terraform-kubestack')
+    git_url = f'github.com/{git_repo}'
 
     gitref = environ.get('GIT_REF')
     if gitref.startswith('refs/tags/'):
         version = gitref.replace('refs/tags/', '')
         # Tagged releases go to main image repository
-        image_name = 'kubestack/framework'
+        image_name = getenv('IMAGE_NAME', 'kubestack/framework')
 
     try:
         target = argv[1]
@@ -88,7 +92,7 @@ if __name__ == "__main__":
 
     for configuration in configurations:
         if target == "dist":
-            dist(version, image_name, configuration)
+            dist(version, image_name, configuration, git_url)
             continue
 
         if target == "compress":

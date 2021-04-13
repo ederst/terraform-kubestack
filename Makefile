@@ -3,12 +3,18 @@ _all: dist build
 GIT_REF := $(shell echo "refs/heads/"`git rev-parse --abbrev-ref HEAD`)
 GIT_SHA := $(shell echo `git rev-parse --verify HEAD^{commit}`)
 
+IMAGE_NAME ?= kubestack/framework
+DEV_IMAGE_NAME ?= kubestack/framework-dev
+
 dist:
 	rm -rf quickstart/_dist
 
 	docker build \
 		--build-arg GIT_REF=${GIT_REF} \
 		--build-arg GIT_SHA=${GIT_SHA} \
+		--build-arg GITHUB_REPOSITORY=${GITHUB_REPOSITORY} \
+		--build-arg IMAGE_NAME=${IMAGE_NAME} \
+		--build-arg DEV_IMAGE_NAME=${DEV_IMAGE_NAME} \
 		--file oci/Dockerfile \
 		--progress plain \
 		-t dist-helper:latest \
@@ -23,16 +29,18 @@ dist:
 
 	docker cp dist-helper:/quickstart/_dist quickstart/_dist
 	docker stop dist-helper
-	
 
 build:
 	docker build \
 		--build-arg GIT_REF=${GIT_REF} \
 		--build-arg GIT_SHA=${GIT_SHA} \
+		--build-arg GITHUB_REPOSITORY=${GITHUB_REPOSITORY} \
+		--build-arg IMAGE_NAME=${IMAGE_NAME} \
+		--build-arg DEV_IMAGE_NAME=${DEV_IMAGE_NAME} \
 		--file oci/Dockerfile \
 		--progress plain \
-		-t kubestack/framework:local-$(GIT_SHA) \
-		. 
+		-t ${IMAGE_NAME}:local-$(GIT_SHA) \
+		.
 
 validate: .init
 	docker exec \
@@ -71,7 +79,7 @@ shell: .init
 		-e KBST_AUTH_GCLOUD \
 		-e HOME=/infra/tests/.user \
 		--workdir /infra/tests \
-		kubestack/framework:local-$(GIT_SHA) \
+		${IMAGE_NAME}:local-$(GIT_SHA) \
 		sleep infinity
 
 .stop-container:

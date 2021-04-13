@@ -14,7 +14,8 @@ env:
   #  * conditionally to docker.io (if github.owner == kbst then docker.io)
   #  * or just use a repository environment/secret?
   IMAGE_REGISTRY: "ghcr.io"
-  IMAGE_NAME: "${{ github.repository_owner }}/framework-dev"
+  DEV_IMAGE_NAME: "ghcr.io/${{ github.repository_owner }}/framework-dev"
+  IMAGE_NAME: "ghcr.io/${{ github.repository_owner }}/framework"
 
 jobs:
   build-test-artifacts:
@@ -72,9 +73,9 @@ jobs:
               --frontend dockerfile.v0 \
               --local context=/tmp/work \
               --local dockerfile=/tmp/work/oci \
-              --output type=image,name=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:test-${{ github.sha }}-${{ matrix.starter }},push=true \
-              --export-cache type=registry,ref=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-${{ matrix.starter }},push=true \
-              --import-cache type=registry,ref=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-${{ matrix.starter }} \
+              --output type=image,name=${{ env.DEV_IMAGE_NAME }}:test-${{ github.sha }}-${{ matrix.starter }},push=true \
+              --export-cache type=registry,ref=${{ env.DEV_IMAGE_NAME }}:buildcache-${{ matrix.starter }},push=true \
+              --import-cache type=registry,ref=${{ env.DEV_IMAGE_NAME }}:buildcache-${{ matrix.starter }} \
               --opt target=${{ matrix.starter }}
 
   test:
@@ -104,7 +105,7 @@ jobs:
       # to kubestack/framework after they have been tested
       # but the Dockerfiles in the artifact have the target image name
       run: |
-        SOURCE_IMAGE=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:test-${{ github.sha }}-${{ matrix.starter }}
+        SOURCE_IMAGE=${{ env.DEV_IMAGE_NAME }}:test-${{ github.sha }}-${{ matrix.starter }}
         docker pull $SOURCE_IMAGE
         TARGET_IMAGE=$(cat Dockerfile | sed 's/FROM //')
         docker tag $SOURCE_IMAGE $TARGET_IMAGE
@@ -204,7 +205,7 @@ jobs:
       # retag it as the image specified in the artifact
       # push the new image with the new tag
       run: |
-        SOURCE_IMAGE=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:test-${{ github.sha }}-${{ matrix.starter }}
+        SOURCE_IMAGE=${{ env.DEV_IMAGE_NAME }}:test-${{ github.sha }}-${{ matrix.starter }}
         docker pull $SOURCE_IMAGE
         TARGET_IMAGE=$(cat quickstart/_dist/kubestack-starter-${{ matrix.starter }}/Dockerfile | sed 's/FROM //')
         docker tag $SOURCE_IMAGE $TARGET_IMAGE
