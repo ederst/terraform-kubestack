@@ -202,6 +202,7 @@ jobs:
     # only publish the artifacts when tests passed and images are pushed
     # because publishing the starter is what makes a release public
     needs: [test, publish-image]
+    if: github.repository_owner == "kbst"
 
     strategy:
       matrix:
