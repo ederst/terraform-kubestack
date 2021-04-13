@@ -9,6 +9,13 @@ on:
     tags:
     - "*"  # run for tags
 
+env:
+  # TODO(sprietl): either set this:
+  #  * conditionally to docker.io (if github.owner == kbst then docker.io)
+  #  * or just use a repository environment/secret?
+  IMAGE_REGISTRY: "ghcr.io"
+  IMAGE_NAME: "${{ github.repository_owner }}/framework-dev"
+
 jobs:
   build-test-artifacts:
     runs-on: ubuntu-latest
@@ -43,9 +50,12 @@ jobs:
         name: test-artifacts
         path: ./quickstart/_dist
 
-    - name: 'Docker login'
-      run: |
-        echo ${{ secrets.DOCKER_AUTH }} | docker login --username kbstci --password-stdin
+    - name: Docker login
+      uses: docker/login-action@v1
+      with:
+        registry: ${{ env.IMAGE_REGISTRY }}
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build ${{ matrix.starter }} image
       env:
@@ -62,9 +72,9 @@ jobs:
               --frontend dockerfile.v0 \
               --local context=/tmp/work \
               --local dockerfile=/tmp/work/oci \
-              --output type=image,name=kubestack/framework-dev:test-${{ github.sha }}-${{ matrix.starter }},push=true \
-              --export-cache type=registry,ref=kubestack/framework-dev:buildcache-${{ matrix.starter }},push=true \
-              --import-cache type=registry,ref=kubestack/framework-dev:buildcache-${{ matrix.starter }} \
+              --output type=image,name=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:test-${{ github.sha }}-${{ matrix.starter }},push=true \
+              --export-cache type=registry,ref=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-${{ matrix.starter }},push=true \
+              --import-cache type=registry,ref=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-${{ matrix.starter }} \
               --opt target=${{ matrix.starter }}
 
   test:
@@ -94,7 +104,7 @@ jobs:
       # to kubestack/framework after they have been tested
       # but the Dockerfiles in the artifact have the target image name
       run: |
-        SOURCE_IMAGE=kubestack/framework-dev:test-${{ github.sha }}-${{ matrix.starter }}
+        SOURCE_IMAGE=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:test-${{ github.sha }}-${{ matrix.starter }}
         docker pull $SOURCE_IMAGE
         TARGET_IMAGE=$(cat Dockerfile | sed 's/FROM //')
         docker tag $SOURCE_IMAGE $TARGET_IMAGE
@@ -182,16 +192,19 @@ jobs:
         name: test-artifacts
         path: ./quickstart/_dist
 
-    - name: 'Docker login'
-      run: |
-        echo ${{ secrets.DOCKER_AUTH }} | docker login --username kbstci --password-stdin
+    - name: Docker login
+      uses: docker/login-action@v1
+      with:
+        registry: ${{ env.IMAGE_REGISTRY }}
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: 'Docker push'
       # pull the image built for testing
       # retag it as the image specified in the artifact
       # push the new image with the new tag
       run: |
-        SOURCE_IMAGE=kubestack/framework-dev:test-${{ github.sha }}-${{ matrix.starter }}
+        SOURCE_IMAGE=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:test-${{ github.sha }}-${{ matrix.starter }}
         docker pull $SOURCE_IMAGE
         TARGET_IMAGE=$(cat quickstart/_dist/kubestack-starter-${{ matrix.starter }}/Dockerfile | sed 's/FROM //')
         docker tag $SOURCE_IMAGE $TARGET_IMAGE
