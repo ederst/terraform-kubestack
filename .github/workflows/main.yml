@@ -164,15 +164,16 @@ jobs:
 
     - name: 'Terraform plan'
       working-directory: ./kubestack-starter-${{ matrix.starter }}
-      env:
-        KBST_AUTH_AWS: ${{ secrets.KBST_AUTH_AWS }}
-        KBST_AUTH_AZ: ${{ secrets.KBST_AUTH_AZ }}
-        KBST_AUTH_GCLOUD: ${{ secrets.KBST_AUTH_GCLOUD }}
+      if: ${{ matrix.starter == 'kind' }}
+      # env:
+        # KBST_AUTH_AWS: ${{ secrets.KBST_AUTH_AWS }}
+        # KBST_AUTH_AZ: ${{ secrets.KBST_AUTH_AZ }}
+        # KBST_AUTH_GCLOUD: ${{ secrets.KBST_AUTH_GCLOUD }}
+        # -e KBST_AUTH_AWS \
+        # -e KBST_AUTH_AZ \
+        # -e KBST_AUTH_GCLOUD \
       run: |
         docker run --rm \
-          -e KBST_AUTH_AWS \
-          -e KBST_AUTH_AZ \
-          -e KBST_AUTH_GCLOUD \
           -v `pwd`:/infra \
           -v /var/run/docker.sock:/var/run/docker.sock \
           test-image:${{ github.sha }} \
